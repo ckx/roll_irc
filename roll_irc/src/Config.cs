@@ -13,6 +13,7 @@ namespace roll_irc {
             Password = "";
             Ident = "roll-chan";
             RealName = "roll-chan";
+            CommandSequence = ".";
             Channels = new List<string>();
             LoggingLevel = LogLevel.Info;
         }
@@ -26,6 +27,7 @@ namespace roll_irc {
         public string Password { get; set; }
         public string Ident { get; set; }
         public string RealName { get; set; }
+        public string CommandSequence { get; set; }
         public List<string> Channels { get; set; }
 
         /// <summary>

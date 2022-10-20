@@ -1,0 +1,4 @@
+﻿* config file
+* listen for commands
+* messages/alerts
+* gw2 module beginnings

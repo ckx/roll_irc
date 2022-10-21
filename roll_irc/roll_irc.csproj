@@ -8,9 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="YamlDotNet">
-      <HintPath>C:\tools\yamldotnet\YamlDotNet.dll</HintPath>
-    </Reference>
+    <PackageReference Include="YamlDotNet" Version="12.0.2" />
   </ItemGroup>
 
 </Project>

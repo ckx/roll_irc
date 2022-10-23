@@ -6,6 +6,10 @@
 
         private static string _logPath = "";
 
+        public static Dictionary<Command, LogLevel> CommandLogLevel = new() {
+            { Command.PONG, LogLevel.Debug }
+        };
+
         internal static void CreateLogFile() {
             var logDirectory = "Logs";
             System.IO.Directory.CreateDirectory(logDirectory);
@@ -31,7 +35,22 @@
             callerName ??= "roll-core";
             string line;
             line = $"[{Timestamp}] [{logLevel}] [{callerName}] {logMessage}";
+            CommitLog(line, logLevel);
+        }
 
+        internal static void WriteLine(string logMessage, Flow flow, LogLevel? logLevel = null) {
+#if DEBUG
+            if (Globals.SilenceLogger) {
+                return;
+            }
+#endif
+            logLevel ??= LogLevel.Info;
+            string line;
+            line = $"[{Timestamp}] [{logLevel}] [{flow}] {logMessage}";
+            CommitLog(line, logLevel);
+        }
+
+        private static void CommitLog(string line, LogLevel? logLevel) {
             // console output, always happens
             Console.WriteLine(line);
             // write to file system only on appropriate config/loglevel
@@ -44,7 +63,6 @@
                     throw;
                 }
             }
-
         }
     }
 }

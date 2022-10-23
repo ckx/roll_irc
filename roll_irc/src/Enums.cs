@@ -6,7 +6,7 @@
         Debug
     }
 
-    public enum Command {
+    public enum IrcCommand {
         NONE,
         JOIN,
         NICK,
@@ -28,9 +28,4 @@
         Incoming,
         Outgoing
     }
-
-    //public static class Reply {
-    //    public const string RPL_ENDOFMOTD = "376";
-    //    public const string ERR_NOMOTD = "422";
-    //}
 }

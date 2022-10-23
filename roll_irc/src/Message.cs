@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace roll_irc {
     internal struct Message {
-        internal Command Command { get; set; }
+        internal IrcCommand Command { get; set; }
         internal Reply Reply { get; set; }
         internal string Nick { get; set; }
         internal string User { get; set; }

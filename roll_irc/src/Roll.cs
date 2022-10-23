@@ -5,13 +5,13 @@ using System.Net.Security;
 namespace roll_irc {
     internal class Roll {
         internal Roll() {
-            _dataStream = NetworkStream.Null;
+            _ircStream = NetworkStream.Null;
             _streamWriter = StreamWriter.Null;
             _streamReader = StreamReader.Null;
         }
 
         private readonly TcpClient _ircClient = new();
-        private Stream _dataStream;
+        private Stream _ircStream;
         private StreamWriter _streamWriter;
         private StreamReader _streamReader;
 
@@ -27,27 +27,27 @@ namespace roll_irc {
                     Logger.WriteLine($"Connection failed.", null, LogLevel.Error);
                 }
 
-                _dataStream = _ircClient.GetStream();
+                _ircStream = _ircClient.GetStream();
                 if (Globals.RunConfig.SslEnabled) {
-                    SslStream sslStream = new SslStream(_dataStream);
+                    SslStream sslStream = new SslStream(_ircStream);
                     await sslStream.AuthenticateAsClientAsync(Globals.RunConfig.Server);
-                    _dataStream = sslStream;
+                    _ircStream = sslStream;
                 }
-                _streamReader = new(_dataStream);
-                _streamWriter = new(_dataStream);
+                _streamReader = new(_ircStream);
+                _streamWriter = new(_ircStream);
 
-                using (_dataStream)
+                using (_ircStream)
                 using (_streamReader)
                 using (_streamWriter) {
-                    await SendCommand(Command.NICK, Globals.RunConfig.Nickname);
-                    await SendCommand(Command.USER, $"{Globals.RunConfig.Ident} * 0 {Globals.RunConfig.RealName}");
+                    await SendCommand(IrcCommand.NICK, Globals.RunConfig.Nickname);
+                    await SendCommand(IrcCommand.USER, $"{Globals.RunConfig.Ident} * 0 {Globals.RunConfig.RealName}");
 
                     while (_ircClient.Connected) {
                         string? ircData = await _streamReader.ReadLineAsync();
                         if (ircData != null) {
                             Message message = ParseMessage(ircData);
                             if (message.Sender == "PING") {
-                                await SendCommand(Command.PONG, message.Content);
+                                await SendCommand(IrcCommand.PONG, message.Content);
                                 continue;
                             }
 
@@ -63,9 +63,9 @@ namespace roll_irc {
                             }
 
                             switch (message.Command) {
-                                case Command.NONE:
+                                case IrcCommand.NONE:
                                     break;
-                                case Command.PRIVMSG:
+                                case IrcCommand.PRIVMSG:
                                     Console.WriteLine("LOL PRIVMSG");
                                     break;
                                 default:
@@ -84,7 +84,7 @@ namespace roll_irc {
 
         internal async Task JoinStartupChannels() {
             foreach (string channel in Globals.RunConfig.Channels) {
-                await SendCommand(Command.JOIN, $"{channel}");
+                await SendCommand(IrcCommand.JOIN, $"{channel}");
                 await _streamWriter.FlushAsync();
             }
         }
@@ -121,7 +121,7 @@ namespace roll_irc {
                 retMessage.Reply = (Reply)reply;
                 msgType = $"{retMessage.Reply}";
             }
-            if (Enum.TryParse(line[1], true, out Command command)) {
+            if (Enum.TryParse(line[1], true, out IrcCommand command)) {
                 retMessage.Command = command;
                 msgType = $"{retMessage.Command}";
             }
@@ -136,13 +136,13 @@ namespace roll_irc {
         }
 
         internal async Task PrivMsg(string receiver, string message) {
-            string commandString = $"{Command.PRIVMSG} {receiver} :{message}";
+            string commandString = $"{IrcCommand.PRIVMSG} {receiver} :{message}";
             await _streamWriter.WriteLineAsync(commandString);
             await _streamWriter.FlushAsync();
-            Logger.WriteLine($"{nameof(Command.PRIVMSG)} {receiver} {message}", Flow.Outgoing, LogLevel.Info);
+            Logger.WriteLine($"{nameof(IrcCommand.PRIVMSG)} {receiver} {message}", Flow.Outgoing, LogLevel.Info);
         }
 
-        internal async Task SendCommand(Command command, string parameters) {
+        internal async Task SendCommand(IrcCommand command, string parameters) {
             string commandString = $"{command} {parameters}";
             await _streamWriter.WriteLineAsync(commandString);
             await _streamWriter.FlushAsync();

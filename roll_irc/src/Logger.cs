@@ -6,8 +6,8 @@
 
         private static string _logPath = "";
 
-        public static Dictionary<Command, LogLevel> CommandLogLevel = new() {
-            { Command.PONG, LogLevel.Debug }
+        public static Dictionary<IrcCommand, LogLevel> CommandLogLevel = new() {
+            { IrcCommand.PONG, LogLevel.Debug }
         };
 
         internal static void CreateLogFile() {

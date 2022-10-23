@@ -1,7 +1,7 @@
 ﻿using System.Net.Sockets;
 using System.Net.Security;
 
-// Most of the implenetation is guided by RFC 1459: https://www.rfc-editor.org/rfc/rfc1459.html
+// Most of the implementation is guided by RFC 1459: https://www.rfc-editor.org/rfc/rfc1459.html
 namespace roll_irc {
     internal class Roll {
         internal Roll() {
@@ -71,21 +71,6 @@ namespace roll_irc {
                                 default:
                                     break;
                             }
-
-                            //if (message.) {
-                            //    switch (line[1]) {
-                            //        case Reply.RPL_ENDOFMOTD:
-                            //        case Reply.ERR_NOMOTD:
-                            //            await Identify();
-                            //            await JoinStartupChannels();
-                            //            break;
-                            //        case nameof(Command.PRIVMSG):
-                            //            Console.WriteLine("message incoming lol");
-                            //            break;
-                            //        default:
-                            //            break;
-                            //    }
-                            //}
                         }
                     }
                 }
@@ -144,10 +129,6 @@ namespace roll_irc {
             if (line.Length >= 4) {
                 retMessage.Content = String.Join(" ", line, 3, line.Length - 3); //line[3].Substring(1);
             }
-            //if (line[3].StartsWith(':')) {
-            //} else {
-            //    retMessage.Content = line[3];
-            //}
             string formattedMessage = $"[{msgType}] [{retMessage.Receiver}] <{retMessage.Sender}> {retMessage.Content}";
             Logger.WriteLine(formattedMessage, Flow.Incoming, LogLevel.Info);
 

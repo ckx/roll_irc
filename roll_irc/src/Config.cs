@@ -15,7 +15,10 @@ namespace roll_irc {
             RealName = "roll-chan";
             CommandSequence = ".";
             Channels = new List<string>();
+            ActiveModules = new List<string>();
             LoggingLevel = LogLevel.Info;
+
+            GW2Config = new();
         }
 
         #region Properties
@@ -29,6 +32,7 @@ namespace roll_irc {
         public string RealName { get; set; }
         public string CommandSequence { get; set; }
         public List<string> Channels { get; set; }
+        public List<string> ActiveModules { get; set; }
 
         /// <summary>
         /// 0 = Error
@@ -37,6 +41,10 @@ namespace roll_irc {
         /// 3 = Debug
         /// </summary>
         public LogLevel LoggingLevel { get; set; }
+        #endregion
+
+        #region Module Configs
+        public GuildWars2Config GW2Config { get; set; }
         #endregion
 
         #region Static Methods
@@ -60,8 +68,24 @@ namespace roll_irc {
             } catch (Exception) {
                 throw;
             }
-
         }
+        #endregion
+    }
+
+    public class GuildWars2Config : IModuleConfig, IRestApiConfig {
+        #region Constructor
+        public GuildWars2Config() {
+            Subscribers = new();
+            BaseUri = "https://api.guildwars2.com";
+        }
+        #endregion
+
+        #region IModuleConfig Properties
+        public List<string> Subscribers { get; set; }
+        #endregion
+
+        #region IRestApiConfig Properties
+        public string BaseUri { get; set; }
         #endregion
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace roll_irc {
+﻿using System.Reflection;
+
+namespace roll_irc {
     internal static class Utility {
         internal static string StringSplit(string input, char firstDelimiter, char secondDelimiter) {
             string output = "";
@@ -12,6 +14,18 @@
                 output = input.Substring(indexFrom + 1, indexTo - indexFrom - 1);
             }
             return output;
+        }
+
+        // This anonymous function will end up calling staticType.staticMethod()
+        internal static object? ReturnFromStaticMethod(string staticTypeName, string staticMethod) {
+            Type? staticType = Type.GetType(staticTypeName);
+            if (staticType != null) {
+                MethodInfo? methodInfo = staticType.GetMethod(staticMethod);
+                if (methodInfo != null) {
+                    return methodInfo.Invoke(null, null);
+                }
+            }
+            return null;
         }
     }
 }

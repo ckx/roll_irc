@@ -4,27 +4,38 @@ using System.Net.Security;
 // Most of the implementation is guided by RFC 1459: https://www.rfc-editor.org/rfc/rfc1459.html
 namespace roll_irc {
     internal class Roll {
+        #region Constructors
         internal Roll() {
             _ircStream = NetworkStream.Null;
             _streamWriter = StreamWriter.Null;
             _streamReader = StreamReader.Null;
+            _modules = new();
         }
+        #endregion
 
+        #region Private fields
         private readonly TcpClient _ircClient = new();
         private Stream _ircStream;
         private StreamWriter _streamWriter;
         private StreamReader _streamReader;
+        private readonly List<IModule> _modules;
+        #endregion
 
+        #region Internal methods
+        /// <summary>
+        /// Launch the bot. Create the TCP socket connection, read&write from&to stream
+        /// </summary>
         internal async Task Ikimasu(){
             Logger.CreateLogFile();
             Globals.RunConfig = await Config.GetConfig();
             Config.StoreConfig(Globals.RunConfig);
+            await InitializeModules();
 
             using (_ircClient) {
-                Logger.WriteLine($"Connecting to {Globals.RunConfig.Server}:{Globals.RunConfig.ServerPort}");
+                await Logger.WriteLine($"Connecting to {Globals.RunConfig.Server}:{Globals.RunConfig.ServerPort}");
                 await _ircClient.ConnectAsync(Globals.RunConfig.Server, Globals.RunConfig.ServerPort);
                 if (!_ircClient.Connected) {
-                    Logger.WriteLine($"Connection failed.", null, LogLevel.Error);
+                    await Logger.WriteLine($"Connection failed.", null, LogLevel.Error);
                 }
 
                 _ircStream = _ircClient.GetStream();
@@ -45,7 +56,7 @@ namespace roll_irc {
                     while (_ircClient.Connected) {
                         string? ircData = await _streamReader.ReadLineAsync();
                         if (ircData != null) {
-                            Message message = ParseMessage(ircData);
+                            Message message = await ParseMessage(ircData);
                             if (message.Sender == "PING") {
                                 await SendCommand(IrcCommand.PONG, message.Content);
                                 continue;
@@ -77,19 +88,10 @@ namespace roll_irc {
             }
         }
 
-        internal async Task Identify() {
-            // Rizon's ID string. Fairly standard, but this string can change per server.
-            await PrivMsg("NickServ", $"IDENTIFY {Globals.RunConfig.Password}");
-        }
-
-        internal async Task JoinStartupChannels() {
-            foreach (string channel in Globals.RunConfig.Channels) {
-                await SendCommand(IrcCommand.JOIN, $"{channel}");
-                await _streamWriter.FlushAsync();
-            }
-        }
-
-        internal static Message ParseMessage(string ircData) {
+        /// <summary>
+        /// Take a raw message from an IRC server and parse it, returning a roll_irc.Message
+        /// </summary>
+        internal static async Task<Message> ParseMessage(string ircData) {
             Message retMessage = new();
             string[] line = ircData.Split(' ');
             string sender = "";
@@ -130,19 +132,45 @@ namespace roll_irc {
                 retMessage.Content = String.Join(" ", line, 3, line.Length - 3); //line[3].Substring(1);
             }
             string formattedMessage = $"[{msgType}] [{retMessage.Receiver}] <{retMessage.Sender}> {retMessage.Content}";
-            Logger.WriteLine(formattedMessage, Flow.Incoming, LogLevel.Info);
+            await Logger.WriteLine(formattedMessage, Flow.Incoming, LogLevel.Info);
 
             return retMessage;
         }
+        #endregion
 
-        internal async Task PrivMsg(string receiver, string message) {
+        #region Private methods
+        /// <summary>
+        /// Auth against nickserv
+        /// </summary>
+        private async Task Identify() {
+            // Rizon's ID string. Fairly standard, but this string can change per server.
+            await PrivMsg("NickServ", $"IDENTIFY {Globals.RunConfig.Password}");
+        }
+
+        /// <summary>
+        /// Join initial startup, or "perform", channels.
+        /// </summary>
+        private async Task JoinStartupChannels() {
+            foreach (string channel in Globals.RunConfig.Channels) {
+                await SendCommand(IrcCommand.JOIN, $"{channel}");
+                await _streamWriter.FlushAsync();
+            }
+        }
+
+        /// <summary>
+        /// Send a normal chat message. PRIVMSG is used even for channels. 
+        /// </summary>
+        private async Task PrivMsg(string receiver, string message) {
             string commandString = $"{IrcCommand.PRIVMSG} {receiver} :{message}";
             await _streamWriter.WriteLineAsync(commandString);
             await _streamWriter.FlushAsync();
-            Logger.WriteLine($"{nameof(IrcCommand.PRIVMSG)} {receiver} {message}", Flow.Outgoing, LogLevel.Info);
+            await Logger.WriteLine($"{nameof(IrcCommand.PRIVMSG)} {receiver} {message}", Flow.Outgoing, LogLevel.Info);
         }
 
-        internal async Task SendCommand(IrcCommand command, string parameters) {
+        /// <summary>
+        /// Send any defined IrcCommand
+        /// </summary>
+        private async Task SendCommand(IrcCommand command, string parameters) {
             string commandString = $"{command} {parameters}";
             await _streamWriter.WriteLineAsync(commandString);
             await _streamWriter.FlushAsync();
@@ -150,7 +178,35 @@ namespace roll_irc {
             if (Logger.CommandLogLevel.ContainsKey(command)) {
                 logLevel = Logger.CommandLogLevel[command];
             }
-            Logger.WriteLine($"{command} {parameters}", Flow.Outgoing, logLevel);
+            await Logger.WriteLine($"{command} {parameters}", Flow.Outgoing, logLevel);
         }
+
+        /// <summary>
+        /// Startup all the currrently loaded modules
+        /// </summary>
+        private async Task InitializeModules() {
+
+            // Figure out what the active modules are, add them to _modules
+            foreach (string activeModule in Globals.RunConfig.ActiveModules) {
+                await Logger.WriteLine($"Initializing module: {activeModule}...");
+                object? retVal = Utility.ReturnFromStaticMethod(
+                    $"roll_irc.{activeModule}",
+                    "GetInstance"
+                    );
+                if (retVal != null) {
+                    IModule module = (IModule)retVal;
+                    await Logger.WriteLine($"Module initialization complete for {activeModule}.");
+                    _modules.Add(module);
+                } else {
+                    await Logger.WriteLine($"Initialization of module {activeModule} failed.", null, LogLevel.Error);
+                }
+            }
+
+            // Run IModule.AddCommands();
+            foreach (IModule module in _modules) {
+                module.AddCommands();
+            }
+        }
+        #endregion
     }
 }

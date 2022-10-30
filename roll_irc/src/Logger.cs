@@ -25,7 +25,7 @@
             Console.WriteLine($"Log file initiated at {_logPath}");
         }
 
-        internal static void WriteLine(string logMessage, string? callerName = null, LogLevel? logLevel = null) {
+        internal static async Task WriteLine(string logMessage, string? callerName = null, LogLevel? logLevel = null) {
 #if DEBUG
             if (Globals.SilenceLogger) {
                 return;
@@ -35,10 +35,10 @@
             callerName ??= "roll-core";
             string line;
             line = $"[{Timestamp}] [{logLevel}] [{callerName}] {logMessage}";
-            CommitLog(line, logLevel);
+            await CommitLog(line, logLevel);
         }
 
-        internal static void WriteLine(string logMessage, Flow flow, LogLevel? logLevel = null) {
+        internal static async Task WriteLine(string logMessage, Flow flow, LogLevel? logLevel = null) {
 #if DEBUG
             if (Globals.SilenceLogger) {
                 return;
@@ -47,17 +47,17 @@
             logLevel ??= LogLevel.Info;
             string line;
             line = $"[{Timestamp}] [{logLevel}] [{flow}] {logMessage}";
-            CommitLog(line, logLevel);
+            await CommitLog(line, logLevel);
         }
 
-        private static void CommitLog(string line, LogLevel? logLevel) {
+        private static async Task CommitLog(string line, LogLevel? logLevel) {
             // console output, always happens
             Console.WriteLine(line);
             // write to file system only on appropriate config/loglevel
             if (Globals.RunConfig.LoggingLevel >= logLevel) {
                 try {
                     using (StreamWriter sw = File.AppendText(_logPath)) {
-                        sw.WriteLine(line);
+                        await sw.WriteLineAsync(line);
                     }
                 } catch (Exception) {
                     throw;

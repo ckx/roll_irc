@@ -14,7 +14,20 @@ namespace roll_irc {
 
         #region Methods
         public void AddCommands();
+        public void AddSubscribers();
         public void ProcessCommand(string command);
+        #endregion
+    }
+
+    public interface IModuleConfig {
+        #region Properties
+        public List<string> Subscribers { get; set; }
+        #endregion
+    }
+
+    public interface IRestApiConfig {
+        #region Properties
+        public string BaseUri { get; set; }
         #endregion
     }
 }
